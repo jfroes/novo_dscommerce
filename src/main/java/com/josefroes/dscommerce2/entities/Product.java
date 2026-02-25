@@ -1,6 +1,7 @@
 package com.josefroes.dscommerce2.entities;
 
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import jakarta.persistence.*;
 
 import java.util.HashSet;
@@ -10,6 +11,7 @@ import java.util.Set;
 
 @Entity
 @Table(name = "tb_product")
+@JsonPropertyOrder({ "id", "name", "description", "price", "imgUrl" })
 public class Product {
 
     @Id
