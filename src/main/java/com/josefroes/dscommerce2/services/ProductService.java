@@ -3,11 +3,15 @@ package com.josefroes.dscommerce2.services;
 import com.josefroes.dscommerce2.dto.ProductDTO;
 import com.josefroes.dscommerce2.entities.Product;
 import com.josefroes.dscommerce2.repositories.ProductRepository;
+import com.josefroes.dscommerce2.services.exceptions.DatabaseException;
+import com.josefroes.dscommerce2.services.exceptions.ResourceNotFoundException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -21,7 +25,7 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public ProductDTO findById(Long id){
-        return repository.findById(id).map(ProductDTO::new).orElseThrow(() -> new EntityNotFoundException("produto não encontrado"));
+        return repository.findById(id).map(ProductDTO::new).orElseThrow(() -> new ResourceNotFoundException("Recurso não encontrado"));
     }
 
     @Transactional(readOnly = true)
@@ -43,17 +47,29 @@ public class ProductService {
     @Transactional
     public ProductDTO update(Long id, ProductDTO productDTO) {
 
-        Product product = repository.getReferenceById(id);
-        copyDtoToEntity(productDTO, product);
+        try {
+            Product product = repository.getReferenceById(id);
+            copyDtoToEntity(productDTO, product);
 
-        product = repository.save(product);
+            product = repository.save(product);
 
-        return  new ProductDTO(product);
+            return new ProductDTO(product);
+        }catch(EntityNotFoundException e){
+            throw new ResourceNotFoundException("Recurso não encontrado");
+        }
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.SUPPORTS)
     public void delete(Long id){
-       repository.deleteById(id);
+        if(!repository.existsById(id)){
+            throw new ResourceNotFoundException("Recurso não encontrado");
+        }
+
+        try {
+            repository.deleteById(id);
+        }catch(DataIntegrityViolationException e){
+            throw new DatabaseException("Erro ao processar entidade");
+        }
     }
 
 
